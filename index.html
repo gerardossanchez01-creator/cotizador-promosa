@@ -162,7 +162,7 @@ Arrendamiento 36 meses: enganche $10,878 + mensualidad $1,451
       </div>
       <div id="cfg" hidden>
         <label style="margin-top:0">URL de tu Google Apps Script (termina en /exec)</label>
-        <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <input type="text" id="sheetUrl" value="https://script.google.com/macros/s/AKfycbyuC9uHU230pffT-mxnE6IGJY1bL_AtDUS8mlv_bY_sjhs5_CZX_wjiNxHy-uMVHFLe/exec" placeholder="https://script.google.com/macros/s/.../exec">
         <div style="font-size:11px;color:var(--muted);margin-top:5px">Se guarda solo en este navegador. Los pasos para crearla vienen en el instructivo.</div>
       </div>
     </div>
@@ -270,7 +270,7 @@ function persist(){
 }
 /* ---- Google Sheets ---- */
 var cfg=document.getElementById('cfg'), sheetUrlEl=document.getElementById('sheetUrl');
-try{sheetUrlEl.value=localStorage.getItem('cotiSheetUrl')||'';}catch(e){}
+try{sheetUrlEl.value=localStorage.getItem('cotiSheetUrl')||sheetUrlEl.value||'';}catch(e){}
 document.getElementById('cfgBtn').onclick=function(){cfg.hidden=!cfg.hidden;};
 sheetUrlEl.addEventListener('input',function(){try{localStorage.setItem('cotiSheetUrl',sheetUrlEl.value.trim());}catch(e){}});
 function collectPayload(){
