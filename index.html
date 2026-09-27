@@ -33,6 +33,9 @@ textarea{resize:vertical;min-height:52px}
 .btn{border:none;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}
 .btn-add{background:var(--blue-soft);color:var(--blue);width:100%}
 .btn-pdf{background:var(--blue);color:#fff;width:100%;padding:13px;font-size:15px;box-shadow:0 3px 10px rgba(0,102,180,.3)}
+.btn-save{background:var(--green);color:#fff;width:100%;margin-top:8px;padding:12px}
+.btn-save:disabled{opacity:.6}
+#cfg{margin-top:8px;padding:10px;border:1px dashed var(--line);border-radius:8px;background:#fbfcfe}
 .btn-ghost{background:#f0f2f5;color:var(--muted)}
 .actions{position:sticky;bottom:0;background:var(--card);padding:12px 0 0;border-top:1px solid var(--line);margin-top:6px}
 .chk{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--ink)}
@@ -151,9 +154,16 @@ Arrendamiento 36 meses: enganche $10,878 + mensualidad $1,451
 
     <div class="actions">
       <button class="btn btn-pdf" onclick="window.print()">📄 Descargar PDF</button>
+      <button class="btn btn-save" id="saveSheet">💾 Guardar cotización en Google Sheets</button>
+      <div id="saveMsg" style="font-size:12px;margin-top:6px;min-height:14px"></div>
       <div class="row2" style="margin-top:8px">
-        <button class="btn btn-ghost" id="saveBtn">Guardar datos</button>
         <button class="btn btn-ghost" id="newBtn">Nueva cotización</button>
+        <button class="btn btn-ghost" id="cfgBtn">⚙️ Conectar Sheets</button>
+      </div>
+      <div id="cfg" hidden>
+        <label style="margin-top:0">URL de tu Google Apps Script (termina en /exec)</label>
+        <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">Se guarda solo en este navegador. Los pasos para crearla vienen en el instructivo.</div>
       </div>
     </div>
   </div>
@@ -241,6 +251,7 @@ function render(){
   '<div class="sh-foot"><b>Su asesor: '+esc(val('a_nom'))+'</b>'+
     '<span>Promosa Dental · '+esc(val('a_tel'))+' · info@promosadental.com · www.promosadental.com</span></div>';
   document.getElementById('sheet').innerHTML=html;
+  if(typeof persist==='function'){persist();}
 }
 
 /* eventos */
@@ -254,8 +265,29 @@ function fechaHoy(){var m=['enero','febrero','marzo','abril','mayo','junio','jul
 
 /* guardar / cargar / nuevo */
 var FIELDS=['f_no','f_fecha','f_vig','c_nom','c_emp','c_tel','c_dom','c_ciu','c_mail','fin_hook','fin_planes','a_nom','a_tel','a_notas'];
-document.getElementById('saveBtn').onclick=function(){
-  try{var d={f:{},p:prods,iva:document.getElementById('ivaInc').checked};FIELDS.forEach(function(k){d.f[k]=val(k);});localStorage.setItem('cotiPromosa',JSON.stringify(d));this.textContent='✓ Guardado';var b=this;setTimeout(function(){b.textContent='Guardar datos';},1500);}catch(e){alert('No se pudo guardar en este navegador.');}
+function persist(){
+  try{var d={f:{},p:prods,iva:document.getElementById('ivaInc').checked};FIELDS.forEach(function(k){d.f[k]=val(k);});localStorage.setItem('cotiPromosa',JSON.stringify(d));}catch(e){}
+}
+/* ---- Google Sheets ---- */
+var cfg=document.getElementById('cfg'), sheetUrlEl=document.getElementById('sheetUrl');
+try{sheetUrlEl.value=localStorage.getItem('cotiSheetUrl')||'';}catch(e){}
+document.getElementById('cfgBtn').onclick=function(){cfg.hidden=!cfg.hidden;};
+sheetUrlEl.addEventListener('input',function(){try{localStorage.setItem('cotiSheetUrl',sheetUrlEl.value.trim());}catch(e){}});
+function collectPayload(){
+  var ivaInc=document.getElementById('ivaInc').checked,base=0,items=[];
+  prods.forEach(function(p){var q=Number(p.qty)||0,pr=Number(p.price)||0,imp=q*pr;base+=imp;if(p.desc||p.code||imp)items.push({codigo:p.code,descripcion:p.desc,cantidad:q,precio:pr,importe:imp});});
+  var total=ivaInc?base:base*1.16;
+  return {no:val('f_no'),fecha:val('f_fecha'),nombre:val('c_nom'),empresa:val('c_emp'),telefono:val('c_tel'),email:val('c_mail'),ciudad:val('c_ciu'),domicilio:val('c_dom'),productos:items,total:Math.round(total*100)/100,planes:val('fin_planes').replace(/\n+/g,' | '),asesor:val('a_nom')};
+}
+document.getElementById('saveSheet').onclick=function(){
+  var url=(sheetUrlEl.value||'').trim(), msg=document.getElementById('saveMsg'), btn=this;
+  if(!url){cfg.hidden=false;msg.style.color='#c0392b';msg.textContent='Primero pega la URL de Google Sheets en "⚙️ Conectar Sheets".';return;}
+  if(!prods.some(function(p){return (Number(p.qty)||0)*(Number(p.price)||0)>0;})){msg.style.color='#c0392b';msg.textContent='Agrega al menos un producto con precio antes de guardar.';return;}
+  btn.disabled=true;btn.textContent='Guardando…';
+  fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(collectPayload())})
+   .then(function(){msg.style.color='#0b7a4b';msg.textContent='✓ Cotización '+val('f_no')+' guardada en Google Sheets.';})
+   .catch(function(){msg.style.color='#c0392b';msg.textContent='No se pudo guardar. Revisa la URL de Sheets o tu conexión.';})
+   .finally(function(){btn.disabled=false;btn.textContent='💾 Guardar cotización en Google Sheets';});
 };
 document.getElementById('newBtn').onclick=function(){
   if(!confirm('¿Vaciar todo para una cotización nueva?'))return;
