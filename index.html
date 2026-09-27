@@ -133,11 +133,12 @@ table.items td .code{font-size:11px;color:var(--muted)}
     <fieldset>
       <legend>Financiamiento (opcional)</legend>
       <label>Texto del gancho (mensualidad más baja)</label><input type="text" id="fin_hook" value="1,451">
-      <label>Planes de pago (uno por línea)</label>
-      <textarea id="fin_planes">Contado: pago total con 5% de descuento
-Enganche $11,328 + 24 mensualidades de $1,900 (sin tarjeta)
-Enganche $10,878 + 36 mensualidades de $1,451 (sin tarjeta)
-12 mensualidades con tarjeta de $4,317</textarea>
+      <label>Planes de pago — pégalos desde tu cotizador (uno por línea)</label>
+      <textarea id="fin_planes">Contado (efectivo, cheque o transferencia)
+Arrendamiento 24 meses: enganche $11,328 + mensualidad $1,900
+Arrendamiento 36 meses: enganche $10,878 + mensualidad $1,451
+12 meses con tarjeta: $4,317
+24 meses con tarjeta: $2,614</textarea>
     </fieldset>
 
     <fieldset>
@@ -207,7 +208,7 @@ function render(){
 
   var hook=val('fin_hook').trim();
   var hookHTML = hook ? '<div class="hook"><div class="big">Desde <b>$'+esc(hook)+'</b> al mes</div>'+
-     '<div class="r"><b>Financiamiento propio</b><br>sin tarjeta de crédito · sin checar buró</div></div>' : '';
+     '<div class="r"><b>Opciones de financiamiento</b><br>arrendamiento a 24 y 36 meses · o a meses con tarjeta</div></div>' : '';
 
   var planes=nl2li(val('fin_planes'));
   var payHTML = planes ? '<div class="pay"><div class="h">Formas de pago</div><ul>'+planes+'</ul></div>' : '';
